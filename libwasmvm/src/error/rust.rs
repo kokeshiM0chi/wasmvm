@@ -55,6 +55,18 @@ pub enum RustError {
         #[cfg(feature = "backtraces")]
         backtrace: Backtrace,
     },
+    #[error("Error using cosmwasm-std: {}", msg)]
+    CosmWasmStdErr {
+        msg: String,
+        #[cfg(feature = "backtraces")]
+        backtrace: Backtrace,
+    },
+    #[error("Error during dynamic link: {}", msg)]
+    DynamicLinkErr {
+        msg: String,
+        #[cfg(feature = "backtraces")]
+        backtrace: Backtrace,
+    },
 }
 
 impl RustError {
@@ -119,6 +131,22 @@ impl RustError {
             backtrace: Backtrace::capture(),
         }
     }
+
+    pub fn cosmwasm_std_err<S: ToString>(msg: S) -> Self {
+        RustError::CosmWasmStdErr {
+            msg: msg.to_string(),
+            #[cfg(feature = "backtraces")]
+            backtrace: Backtrace::capture(),
+        }
+    }
+
+    pub fn dynamic_link_err<S: ToString>(msg: S) -> Self {
+        RustError::DynamicLinkErr {
+            msg: msg.to_string(),
+            #[cfg(feature = "backtraces")]
+            backtrace: Backtrace::capture(),
+        }
+    }
 }
 
 impl From<VmError> for RustError {
@@ -139,6 +167,12 @@ impl From<std::str::Utf8Error> for RustError {
 impl From<std::string::FromUtf8Error> for RustError {
     fn from(source: std::string::FromUtf8Error) -> Self {
         RustError::invalid_utf8(source)
+    }
+}
+
+impl From<cosmwasm_std::StdError> for RustError {
+    fn from(source: cosmwasm_std::StdError) -> Self {
+        RustError::cosmwasm_std_err(source)
     }
 }
 
@@ -345,6 +379,42 @@ mod tests {
         match error {
             RustError::VmErr { msg, .. } => {
                 assert_eq!(msg, "Ran out of gas during contract execution");
+            }
+            _ => panic!("expect different error"),
+        }
+    }
+
+    #[test]
+    fn cosmwasm_std_err_works() {
+        let original = cosmwasm_std::StdError::generic_err("foo");
+        let error = RustError::cosmwasm_std_err(original);
+        match error {
+            RustError::CosmWasmStdErr { msg, .. } => {
+                assert_eq!(msg, original.to_string());
+            }
+            _ => panic!("expect different error"),
+        }
+    }
+
+    #[test]
+    fn from_cosmwasm_std_err_works() {
+        let original = cosmwasm_std::StdError::generic_err("foo");
+        let error: RustError = original.clone().into();
+        match error {
+            RustError::CosmWasmStdErr { msg, .. } => {
+                assert_eq!(msg, original.to_string());
+            }
+            _ => panic!("expect different error"),
+        }
+    }
+
+    #[test]
+    fn dynamic_link_err_works() {
+        let original_msg = "foo bar 42";
+        let error = RustError::dynamic_link_err_works(original_msg);
+        match error {
+            RustError::DynamicLinkErr { msg, .. } => {
+                assert_eq!(msg, original_msg);
             }
             _ => panic!("expect different error"),
         }
