@@ -339,9 +339,10 @@ type StargateQuery struct {
 }
 
 type WasmQuery struct {
-	Smart        *SmartQuery        `json:"smart,omitempty"`
-	Raw          *RawQuery          `json:"raw,omitempty"`
-	ContractInfo *ContractInfoQuery `json:"contract_info,omitempty"`
+	Smart         *SmartQuery         `json:"smart,omitempty"`
+	Raw           *RawQuery           `json:"raw,omitempty"`
+	ContractInfo  *ContractInfoQuery  `json:"contract_info,omitempty"`
+	CallablePoint *CallablePointQuery `json:"callable_point,omitempty"`
 }
 
 // SmartQuery respone is raw bytes ([]byte)
@@ -363,6 +364,12 @@ type ContractInfoQuery struct {
 	ContractAddr string `json:"contract_addr"`
 }
 
+// This is a query for `#[callable_point]` func
+type CallablePointQuery struct {
+	// Bech32 encoded sdk.AccAddress of the contract
+	ContractAddr  string `json:"contract_addr"`
+	CallablePoint []byte `json:"func_name"`
+}
 type ContractInfoResponse struct {
 	CodeID  uint64 `json:"code_id"`
 	Creator string `json:"creator"`
